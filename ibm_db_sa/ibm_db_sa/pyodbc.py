@@ -29,8 +29,6 @@ class DB2ExecutionContext_pyodbc(_SelectLastRowIDMixin, DB2ExecutionContext):
 
 class DB2Dialect_pyodbc(PyODBCConnector, DB2Dialect):
 
-    supports_unicode_statements = False
-
     execution_ctx_cls = DB2ExecutionContext_pyodbc
 
     pyodbc_driver_name = "IBM DB2 ODBC DRIVER"
@@ -87,10 +85,6 @@ class DB2Dialect_pyodbc(PyODBCConnector, DB2Dialect):
         return [[";".join(connectors)], connect_args]
 
 class AS400Dialect_pyodbc(PyODBCConnector, DB2Dialect):
-
-    supports_unicode_statements = False
-    supports_sane_rowcount = False
-    supports_sane_multi_rowcount = False
 
     pyodbc_driver_name = "IBM DB2 ODBC DRIVER"
 

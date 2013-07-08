@@ -145,8 +145,6 @@ class DB2Dialect_zxjdbc(ZxJDBCConnector, DB2Dialect):
 
     supports_unicode_statements = supports_unicode_binds = \
     returns_unicode_strings = supports_unicode = False
-    supports_sane_rowcount = False
-    supports_sane_multi_rowcount = False
 
     jdbc_db_name = 'db2'
     jdbc_driver_name = 'com.ibm.db2.jcc.DB2Driver'
