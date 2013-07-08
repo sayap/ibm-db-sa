@@ -20,8 +20,8 @@
 from sqlalchemy import util
 import urllib
 from sqlalchemy.connectors.pyodbc import PyODBCConnector
-from .base import _SelectLastRowIDMixin, DB2ExecutionContext, DB2Dialect
-
+from .base import _SelectLastRowIDMixin, DB2ExecutionContext, DB2Dialect, \
+    AS400Dialect, ZOSDialect
 
 
 class DB2ExecutionContext_pyodbc(_SelectLastRowIDMixin, DB2ExecutionContext):
@@ -84,8 +84,10 @@ class DB2Dialect_pyodbc(PyODBCConnector, DB2Dialect):
                                         for k, v in keys.iteritems()])
         return [[";".join(connectors)], connect_args]
 
-class AS400Dialect_pyodbc(PyODBCConnector, DB2Dialect):
 
-    pyodbc_driver_name = "IBM DB2 ODBC DRIVER"
+class AS400Dialect_pyodbc(DB2Dialect_pyodbc, AS400Dialect):
+    pass
 
 
+class ZOSDialect_pyodbc(DB2Dialect_pyodbc, ZOSDialect):
+    pass

@@ -18,7 +18,7 @@
 # | Version: 0.3.x                                                           |
 # +--------------------------------------------------------------------------+
 
-from .base import DB2ExecutionContext, DB2Dialect
+from .base import DB2ExecutionContext, DB2Dialect, AS400Dialect, ZOSDialect
 
 from sqlalchemy import processors, types as sa_types, util
 
@@ -101,5 +101,14 @@ class DB2Dialect_ibm_db(DB2Dialect):
                         'Connection Resource cannot be found' in str(ex)
         else:
             return False
+
+
+class AS400Dialect_ibm_db(DB2Dialect_ibm_db, AS400Dialect):
+    pass
+
+
+class ZOSDialect_ibm_db(DB2Dialect_ibm_db, ZOSDialect):
+    pass
+
 
 dialect = DB2Dialect_ibm_db

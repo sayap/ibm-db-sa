@@ -32,8 +32,8 @@ from sqlalchemy import sql, util
 from sqlalchemy import types as sa_types
 from sqlalchemy.engine.base import FullyBufferedResultProxy, ResultProxy
 from sqlalchemy.connectors.zxJDBC import ZxJDBCConnector
-from .base import DB2Dialect, DB2ExecutionContext, DB2Compiler
-
+from .base import DB2Dialect, DB2ExecutionContext, DB2Compiler, \
+    AS400Dialect, ZOSDialect
 
 
 class ReturningResultProxy(FullyBufferedResultProxy):
@@ -180,10 +180,10 @@ class DB2Dialect_zxjdbc(ZxJDBCConnector, DB2Dialect):
         return zxJDBC
 
 
-class AS400Dialect_zxjdbc(DB2Dialect_zxjdbc):
+class AS400Dialect_zxjdbc(DB2Dialect_zxjdbc, AS400Dialect):
     jdbc_db_name = 'as400'
     jdbc_driver_name = 'com.ibm.as400.access.AS400JDBCDriver'
 
 
-
-
+class ZOSDialect_zxjdbc(DB2Dialect_zxjdbc, ZOSDialect):
+    pass

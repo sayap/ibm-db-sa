@@ -490,6 +490,7 @@ class _SelectLastRowIDMixin(object):
 class DB2Dialect(default.DefaultDialect):
 
     name = 'db2'
+    flavor = 'luw'
     max_identifier_length = 128
     encoding = 'utf-8'
     default_paramstyle = 'named'
@@ -573,6 +574,14 @@ class DB2Dialect(default.DefaultDialect):
     def get_indexes(self, connection, table_name, schema=None, **kw):
         return self._reflector.get_indexes(
                                 connection, table_name, schema=schema, **kw)
+
+
+class AS400Dialect(DB2Dialect):
+    flavor = 'as400'
+
+
+class ZOSDialect(DB2Dialect):
+    flavor = 'zos'
 
 
 # legacy naming
