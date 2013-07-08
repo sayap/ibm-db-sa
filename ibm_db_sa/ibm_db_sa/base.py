@@ -582,6 +582,8 @@ class AS400Dialect(DB2Dialect):
 class ZOSDialect(DB2Dialect):
     flavor = 'zos'
 
+    _reflector_cls = ibm_reflection.ZOSReflector
+
 
 # legacy naming
 IBM_DBCompiler = DB2Compiler

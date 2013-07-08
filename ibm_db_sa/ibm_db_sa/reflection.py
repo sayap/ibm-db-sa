@@ -22,6 +22,7 @@ from sqlalchemy import types as sa_types
 from sqlalchemy import sql, util
 from sqlalchemy import Table, MetaData, Column
 from sqlalchemy.engine import reflection
+import itertools
 import re
 
 
@@ -610,3 +611,330 @@ class AS400Reflector(BaseReflector):
                                 'unique': r[1] == 'Y'
                         }
         return [value for key, value in indexes.iteritems()]
+
+
+class ZOSReflector(BaseReflector):
+    ischema = MetaData()
+
+    sys_tables = Table("SYSTABLES", ischema,
+        Column("NAME", CoerceUnicode, key="name"),
+        Column("CREATOR", CoerceUnicode, key="creator"),
+        Column("TYPE", CoerceUnicode, key="type"),
+        schema="SYSIBM")
+
+    sys_indexes = Table("SYSINDEXES", ischema,
+        Column("NAME", CoerceUnicode, key="name"),
+        Column("CREATOR", CoerceUnicode, key="creator"),
+        Column("TBNAME", CoerceUnicode, key="tbname"),
+        Column("TBCREATOR", CoerceUnicode, key="tbcreator"),
+        Column("UNIQUERULE", CoerceUnicode, key="uniquerule"),
+        schema="SYSIBM")
+
+    sys_keys = Table("SYSKEYS", ischema,
+        Column("IXCREATOR", CoerceUnicode, key="ixcreator"),
+        Column("IXNAME", CoerceUnicode, key="ixname"),
+        Column("COLNAME", CoerceUnicode, key="colname"),
+        Column("COLSEQ", CoerceUnicode, key="colseq"),
+        schema="SYSIBM")
+
+    sys_keycoluse = Table("SYSKEYCOLUSE", ischema,
+        Column("CONSTNAME", CoerceUnicode, key="constname"),
+        Column("TBCREATOR", CoerceUnicode, key="tbcreator"),
+        Column("TBNAME", CoerceUnicode, key="tbname"),
+        Column("COLNAME", CoerceUnicode, key="colname"),
+        Column("COLSEQ", CoerceUnicode, key="colseq"),
+        schema="SYSIBM")
+
+    sys_rels = Table("SYSRELS", ischema,
+        Column("RELNAME", CoerceUnicode, key="relname"),
+        Column("CREATOR", CoerceUnicode, key="creator"),
+        Column("TBNAME", CoerceUnicode, key="tbname"),
+        Column("REFTBCREATOR", CoerceUnicode, key="reftbcreator"),
+        Column("REFTBNAME", CoerceUnicode, key="reftbname"),
+        schema="SYSIBM")
+
+    sys_foreignkeys = Table("SYSFOREIGNKEYS", ischema,
+        Column("RELNAME", CoerceUnicode, key="relname"),
+        Column("CREATOR", CoerceUnicode, key="creator"),
+        Column("TBNAME", CoerceUnicode, key="tbname"),
+        Column("COLNAME", CoerceUnicode, key="colname"),
+        Column("COLNO", sa_types.Integer, key="colno"),
+        Column("COLSEQ", sa_types.Integer, key="colseq"),
+        schema="SYSIBM")
+
+    sys_columns = Table("SYSCOLUMNS", ischema,
+        Column("TBCREATOR", CoerceUnicode, key="tbcreator"),
+        Column("TBNAME", CoerceUnicode, key="tbname"),
+        Column("NAME", CoerceUnicode, key="name"),
+        Column("COLNO", sa_types.Integer, key="colno"),
+        Column("COLTYPE", CoerceUnicode, key="coltype"),
+        Column("LENGTH", sa_types.Integer, key="length"),
+        Column("SCALE", sa_types.Integer, key="scale"),
+        Column("NULLS", CoerceUnicode, key="nulls"),
+        Column("DEFAULT", CoerceUnicode, key="default"),
+        Column("DEFAULTVALUE", CoerceUnicode, key="defaultvalue"),
+        schema="SYSIBM")
+
+    sys_views = Table("SYSVIEWS", ischema,
+        Column("NAME", CoerceUnicode, key="name"),
+        Column("CREATOR", CoerceUnicode, key="creator"),
+        Column("TEXT", CoerceUnicode, key="text"),
+        schema="SYSIBM")
+
+    sys_sequences = Table("SYSSEQUENCES", ischema,
+        Column("SCHEMA", CoerceUnicode, key="schema"),
+        Column("NAME", CoerceUnicode, key="name"),
+        schema="SYSIBM")
+
+    def has_table(self, connection, table_name, schema=None):
+        current_schema = self.denormalize_name(
+            schema or self.default_schema_name)
+        table_name = self.denormalize_name(table_name)
+
+        clauses = [
+            self.sys_tables.c.name == table_name,
+            self.sys_tables.c.type == 'T',
+        ]
+        if current_schema:
+          clauses.append(self.sys_tables.c.creator == current_schema)
+
+        s = sql.select([self.sys_tables.c.name], sql.and_(*clauses))
+        c = connection.execute(s)
+        return c.first() is not None
+
+    def has_sequence(self, connection, sequence_name, schema=None):
+        current_schema = self.denormalize_name(
+            schema or self.default_schema_name)
+        sequence_name = self.denormalize_name(sequence_name)
+
+        clauses = [
+            self.sys_sequences.c.name == sequence_name,
+        ]
+        if current_schema:
+            clauses.append(self.sys_sequences.c.schema == current_schema)
+
+        s = sql.select([self.sys_sequences.c.name], sql.and_(*clauses))
+        c = connection.execute(s)
+        return c.first() is not None
+
+    @reflection.cache
+    def get_schema_names(self, connection, **kw):
+        # Just select the distinct creator from all tables. Probably not the
+        # best way...
+        query = sql.select(
+            [sql.distinct(self.sys_tables.c.creator)],
+            order_by=[self.sys_tables.c.creator],
+        )
+        return [self.normalize_name(r[0]) for r in connection.execute(query)]
+
+    @reflection.cache
+    def get_table_names(self, connection, schema=None, **kw):
+        current_schema = self.denormalize_name(
+            schema or self.default_schema_name)
+
+        query = sql.select(
+            [self.sys_tables.c.name],
+            sql.and_(
+                self.sys_tables.c.creator == current_schema,
+                self.sys_tables.c.type == 'T',
+            ),
+            order_by=[self.sys_tables.c.name],
+        )
+        return [self.normalize_name(r[0]) for r in connection.execute(query)]
+
+    @reflection.cache
+    def get_view_names(self, connection, schema=None, **kw):
+        current_schema = self.denormalize_name(
+            schema or self.default_schema_name)
+
+        query = sql.select(
+            # Need distinct since a view may span multiple rows as of DB2 for
+            # z/OS 9, where SYSIBM.SYSVIEWS.TEXT is VARCHAR(1500). In DB2 for
+            # z/OS 10, this is changed to SYSIBM.SYSVIEWS.STATEMENT, which is
+            # CLOB(2M). We only supports version 9 for now.
+            [sql.distinct(self.sys_views.c.name)],
+            self.sys_views.c.creator == current_schema,
+            order_by=[self.sys_views.c.name]
+        )
+        return [self.normalize_name(r[0]) for r in connection.execute(query)]
+
+    @reflection.cache
+    def get_view_definition(self, connection, view_name, schema=None, **kw):
+        current_schema = self.denormalize_name(
+            schema or self.default_schema_name)
+        view_name = self.denormalize_name(view_name)
+
+        query = sql.select(
+            [self.sys_views.c.text],
+            sql.and_(
+                self.sys_views.c.creator == current_schema,
+                self.sys_views.c.name == view_name,
+            ),
+        )
+        return ''.join(r[0] for r in connection.execute(query))
+
+    @reflection.cache
+    def get_columns(self, connection, table_name, schema=None, **kw):
+        current_schema = self.denormalize_name(
+            schema or self.default_schema_name)
+        table_name = self.denormalize_name(table_name)
+        syscols = self.sys_columns
+
+        query = sql.select(
+            [
+                syscols.c.name,
+                syscols.c.coltype,
+                syscols.c.colno,
+                syscols.c.nulls,
+                syscols.c.length,
+                syscols.c.scale,
+                syscols.c.default,
+                syscols.c.defaultvalue,
+            ],
+            sql.and_(
+                syscols.c.tbcreator == current_schema,
+                syscols.c.tbname == table_name
+            ),
+            order_by=[syscols.c.colno],
+        )
+
+        sa_columns = []
+
+        for r in connection.execute(query):
+            coltype = r[1].strip().upper()
+            if coltype in ['DECIMAL', 'NUMERIC']:
+                coltype = self.ischema_names.get(coltype)(int(r[4]), int(r[5]))
+            elif coltype in [
+                'CHARACTER', 'CHAR', 'VARCHAR', 'GRAPHIC', 'VARGRAPHIC',
+            ]:
+                coltype = self.ischema_names.get(coltype)(int(r[4]))
+            else:
+                try:
+                    coltype = self.ischema_names[coltype]
+                except KeyError:
+                    util.warn("Did not recognize type '%s' of column '%s'" %
+                        (coltype, r[0]))
+                    coltype = sa_types.NULLTYPE
+
+            sa_columns.append({
+                'name': self.normalize_name(r[0]),
+                'type': coltype,
+                'nullable': r[3] == 'Y',
+                'default': r[7] or None,
+                'autoincrement': r[6] == 'J',
+            })
+
+        return sa_columns
+
+    @reflection.cache
+    def get_primary_keys(self, connection, table_name, schema=None, **kw):
+        current_schema = self.denormalize_name(
+            schema or self.default_schema_name)
+        table_name = self.denormalize_name(table_name)
+        sysindexes = self.sys_indexes
+        syskeys = self.sys_keys
+
+        query = sql.select(
+            [syskeys.c.colname],
+            sql.and_(
+                sysindexes.c.tbcreator == current_schema,
+                sysindexes.c.tbname == table_name,
+                sysindexes.c.creator == syskeys.c.ixcreator,
+                sysindexes.c.name == syskeys.c.ixname,
+                sysindexes.c.uniquerule == 'P',
+            ),
+            order_by=[syskeys.c.colseq],
+        )
+
+        pk_columns = []
+        for r in connection.execute(query):
+            pk_columns.append(r[0])
+
+        return [self.normalize_name(col) for col in pk_columns]
+
+    @reflection.cache
+    def get_foreign_keys(self, connection, table_name, schema=None, **kw):
+        current_schema = self.denormalize_name(
+            schema or self.default_schema_name)
+        table_name = self.denormalize_name(table_name)
+        sysrels = self.sys_rels
+        sysfkeys = self.sys_foreignkeys
+        syscols = self.sys_columns
+
+        query = sql.select(
+            [
+                sysfkeys.c.relname,
+                sysfkeys.c.creator,
+                sysfkeys.c.tbname,
+                sysfkeys.c.colname,
+                syscols.c.tbcreator,
+                syscols.c.tbname,
+                syscols.c.name,
+            ],
+            sql.and_(
+                sysfkeys.c.creator == current_schema,
+                sysfkeys.c.tbname == table_name,
+                sysfkeys.c.relname == sysrels.c.relname,
+                sysfkeys.c.creator == sysrels.c.creator,
+                sysfkeys.c.tbname == sysrels.c.tbname,
+                sysrels.c.reftbcreator == syscols.c.tbcreator,
+                sysrels.c.reftbname == syscols.c.tbname,
+                sysfkeys.c.colseq == syscols.c.colno,
+            ),
+            order_by=[sysfkeys.c.relname, sysfkeys.c.colseq],
+        )
+
+        fschema = {}
+        for r in connection.execute(query):
+            if not fschema.has_key(r[0]):
+                fschema[r[0]] = {
+                    'name' : self.normalize_name(r[0]),
+                    'constrained_columns' : [self.normalize_name(r[3])],
+                    'referred_schema' : self.normalize_name(r[4]),
+                    'referred_table' : self.normalize_name(r[5]),
+                    'referred_columns' : [self.normalize_name(r[6])],
+                }
+            else:
+                fschema[r[0]]['constrained_columns'].append(
+                    self.normalize_name(r[3]))
+                fschema[r[0]]['referred_columns'].append(
+                    self.normalize_name(r[6]))
+
+        return [value for key, value in
+            sorted(fschema.items(), key=lambda x: x[0])]
+
+    @reflection.cache
+    def get_indexes(self, connection, table_name, schema=None, **kw):
+        current_schema = self.denormalize_name(
+            schema or self.default_schema_name)
+        table_name = self.denormalize_name(table_name)
+        sysidx = self.sys_indexes
+        syskeys = self.sys_keys
+
+        query = sql.select(
+            [
+                sysidx.c.name,
+                sysidx.c.uniquerule,
+                syskeys.c.colname,
+            ],
+            sql.and_(
+                sysidx.c.tbcreator == current_schema,
+                sysidx.c.tbname == table_name,
+                sysidx.c.creator == syskeys.c.ixcreator,
+                sysidx.c.name == syskeys.c.ixname,
+                sysidx.c.uniquerule != 'P',
+            ),
+            order_by=[sysidx.c.name, syskeys.c.colseq],
+        )
+
+        indexes = []
+        for r, group in itertools.groupby(
+            connection.execute(query),
+            lambda r: (r[0], r[1])
+        ):
+            indexes.append({
+                'name': self.normalize_name(r[0]),
+                'column_names': [self.normalize_name(x[2]) for x in group],
+                'unique': r[1] != 'D',
+            })
+        return indexes
