@@ -426,21 +426,24 @@ class DB2DDLCompiler(compiler.DDLCompiler):
 
     def visit_drop_constraint(self, drop, **kw):
         constraint = drop.element
-        if isinstance(constraint, sa_schema.ForeignKeyConstraint):
-                qual = "FOREIGN KEY "
-                const = self.preparer.format_constraint(constraint)
-        elif isinstance(constraint, sa_schema.PrimaryKeyConstraint):
-                qual = "PRIMARY KEY "
-                const = ""
-        elif isinstance(constraint, sa_schema.UniqueConstraint):
-                qual = "INDEX "
-                const = self.preparer.format_constraint(constraint)
+        if isinstance(constraint, sa_schema.PrimaryKeyConstraint):
+            qual = "PRIMARY KEY "
+            const = ""
         else:
-                qual = ""
-                const = self.preparer.format_constraint(constraint)
+            const = self.preparer.format_constraint(constraint)
+            if isinstance(constraint, sa_schema.ForeignKeyConstraint):
+                qual = "FOREIGN KEY "
+            elif isinstance(constraint, sa_schema.UniqueConstraint):
+                qual = "UNIQUE "
+            elif isinstance(constraint, sa_schema.CheckConstraint):
+                qual = "CHECK "
+            # Not sure if necessary. Do we have other constraint type?
+            else:
+                qual = "CONSTRAINT "
         return "ALTER TABLE %s DROP %s%s" % \
                                 (self.preparer.format_table(constraint.table),
                                 qual, const)
+
 
 class DB2IdentifierPreparer(compiler.IdentifierPreparer):
 
