@@ -586,6 +586,11 @@ class ZOSDialect(DB2Dialect):
 
     _reflector_cls = ibm_reflection.ZOSReflector
 
+    def __init__(self, label_length=30, **kwargs):
+        # Maximum length for column alias is 30.
+        # See https://groups.google.com/forum/#!topic/sqlalchemy/GRNtzI0Ilhc
+        super(ZOSDialect, self).__init__(label_length=label_length, **kwargs)
+
 
 # legacy naming
 IBM_DBCompiler = DB2Compiler
