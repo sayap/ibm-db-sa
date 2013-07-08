@@ -199,9 +199,11 @@ class DB2Reflector(BaseReflector):
         viewname = self.denormalize_name(viewname)
 
         query = sql.select([self.sys_views.c.text],
-            self.sys_views.c.viewschema == current_schema,
-            self.sys_views.c.viewname == viewname
-          )
+            sql.and_(
+                self.sys_views.c.viewschema == current_schema,
+                self.sys_views.c.viewname == viewname,
+            ),
+        )
         return connection.execute(query).scalar()
 
     @reflection.cache
@@ -478,9 +480,11 @@ class AS400Reflector(BaseReflector):
         viewname = self.denormalize_name(viewname)
 
         query = sql.select([self.sys_views.c.text],
+            sql.and_(
                 self.sys_views.c.viewschema == current_schema,
-                self.sys_views.c.viewname == viewname
-            )
+                self.sys_views.c.viewname == viewname,
+            ),
+        )
         return connection.execute(query).scalar()
 
     @reflection.cache
