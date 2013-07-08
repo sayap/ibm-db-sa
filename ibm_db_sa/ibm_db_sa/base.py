@@ -301,6 +301,12 @@ class DB2Compiler(compiler.SQLCompiler):
         return "mod(%s, %s)" % (self.process(binary.left),
                                                 self.process(binary.right))
 
+    def visit_true(self, expr, **kw):
+        return '1'
+
+    def visit_false(self, expr, **kw):
+        return '0'
+
     def limit_clause(self, select):
         if select._offset is None and select._limit is not None:
             return " FETCH FIRST %s ROWS ONLY" % select._limit
