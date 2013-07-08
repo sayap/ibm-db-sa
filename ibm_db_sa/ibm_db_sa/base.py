@@ -463,7 +463,7 @@ class _SelectLastRowIDMixin(object):
     _lastrowid = None
 
 
-    def getlastrowid(self):
+    def get_lastrowid(self):
         return self._lastrowid
 
     def pre_exec(self):
