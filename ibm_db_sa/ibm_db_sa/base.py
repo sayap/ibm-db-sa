@@ -21,8 +21,10 @@
 
 """
 import datetime
+from sqlalchemy import exc
 from sqlalchemy import types as sa_types
 from sqlalchemy import schema as sa_schema
+from sqlalchemy import sql
 from sqlalchemy import util
 from sqlalchemy.sql import compiler
 from sqlalchemy.engine import default
@@ -321,10 +323,41 @@ class DB2Compiler(compiler.SQLCompiler):
                                                 self.process(binary.right))
 
     def limit_clause(self, select):
-        if select._limit is not None:
+        if select._offset is None and select._limit is not None:
             return " FETCH FIRST %s ROWS ONLY" % select._limit
         else:
             return ""
+
+    def visit_select(self, select, **kwargs):
+        """Look for ``LIMIT`` and OFFSET in a select statement, and if
+        so tries to wrap it in a subquery with ``row_number()`` criterion.
+
+        """
+        if select._offset and not getattr(select, '_db2_visit', None):
+            # to use ROW_NUMBER(), an ORDER BY is required.
+            if not select._order_by_clause.clauses:
+                raise exc.CompileError('DB2 requires an order_by when '
+                                              'using an offset.')
+
+            _offset = select._offset
+            _limit = select._limit
+            _order_by_clauses = select._order_by_clause.clauses
+            select = select._generate()
+            select._db2_visit = True
+            select = select.column(
+                 sql.func.ROW_NUMBER().over(order_by=_order_by_clauses)
+                     .label("db2_rn")
+                                   ).order_by(None).alias()
+
+            db2_rn = sql.column('db2_rn')
+            limitselect = sql.select([c for c in select.c if
+                                        c.key != 'db2_rn'])
+            limitselect.append_whereclause(db2_rn > _offset)
+            if _limit is not None:
+                limitselect.append_whereclause(db2_rn <= (_limit + _offset))
+            return self.process(limitselect, iswrapper=True, **kwargs)
+        else:
+            return compiler.SQLCompiler.visit_select(self, select, **kwargs)
 
     def visit_sequence(self, sequence):
         return "NEXT VALUE FOR %s" % sequence.name
