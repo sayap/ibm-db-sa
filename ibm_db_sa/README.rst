@@ -18,13 +18,12 @@ Supported Environments
 - Python 2.5 or greater
 - SQLAlchemy 0.7.3 and above
 - the ibm_db_dbi DBAPI library.
+- PyODBC with LUW and z/OS
 
 Not Supported / Not Tested
 ---------------------------
 
 - Python 3 has not yet been tested.
-
-- pyodbc support has not been tested.
 
 - zxjdbc/Jython support is not fully implemented.
 
@@ -55,7 +54,7 @@ Supported Databases
 
 - IBM DB2 Universal Database for Linux/Unix/Windows versions 9.7 onwards
 - Remote connections to i5/OS (iSeries)
-- Remote connections to z/OS (DB2 UDB for zOS), only by default ibm_db drivers
+- Remote connections to z/OS (DB2 UDB for zOS)
 
 Credits
 -------
