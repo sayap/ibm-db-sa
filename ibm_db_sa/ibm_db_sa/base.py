@@ -109,26 +109,6 @@ RESERVED_WORDS = set(
     'regr_count', 'within'])
 
 
-class _IBM_Boolean(sa_types.Boolean):
-
-    def result_processor(self, dialect, coltype):
-        def process(value):
-            if value is None:
-                return None
-            else:
-                return bool(value)
-        return process
-
-    def bind_processor(self, dialect):
-        def process(value):
-            if value is None:
-                return None
-            elif bool(value):
-                return '1'
-            else:
-                return '0'
-        return process
-
 class _IBM_Date(sa_types.Date):
 
     def result_processor(self, dialect, coltype):
@@ -172,7 +152,6 @@ class XML(sa_types.Text):
     __visit_name__ = "XML"
 
 colspecs = {
-    sa_types.Boolean: _IBM_Boolean,
     sa_types.Date: _IBM_Date,
 # really ?
 #    sa_types.Unicode: DB2VARGRAPHIC
