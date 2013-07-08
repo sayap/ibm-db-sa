@@ -526,9 +526,6 @@ class DB2Dialect(default.DefaultDialect):
 
         self._reflector = self._reflector_cls(self)
 
-    # reflection: these all defer to an BaseDB2Reflector
-    # object which selects between DB2 and AS/400 schemas
-
     def normalize_name(self, name):
         return self._reflector.normalize_name(name)
 
@@ -578,6 +575,8 @@ class DB2Dialect(default.DefaultDialect):
 
 class AS400Dialect(DB2Dialect):
     flavor = 'as400'
+
+    _reflector_cls = ibm_reflection.AS400Reflector
 
 
 class ZOSDialect(DB2Dialect):
