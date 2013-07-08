@@ -41,13 +41,15 @@ class BaseReflector(object):
         self.identifier_preparer = dialect.identifier_preparer
 
     def normalize_name(self, name):
+        if name is None:
+            return None
         if isinstance(name, str):
             name = name.decode(self.dialect.encoding)
-        elif name != None:
-            return name.lower() if name.upper() == name and \
-               not self.identifier_preparer._requires_quotes(name.lower()) \
-               else name
-        return name
+        if name.upper() == name and \
+               not self.identifier_preparer._requires_quotes(name.lower()):
+            return name.lower()
+        else:
+            return name
 
     def denormalize_name(self, name):
         if name is None:
