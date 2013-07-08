@@ -37,7 +37,7 @@ class DB2ExecutionContext_ibm_db(DB2ExecutionContext):
 
 class DB2Dialect_ibm_db(DB2Dialect):
 
-    driver = 'ibm_db_sa'
+    driver = 'ibm_db'
     supports_sane_rowcount = True
     execution_ctx_cls = DB2ExecutionContext_ibm_db
 
