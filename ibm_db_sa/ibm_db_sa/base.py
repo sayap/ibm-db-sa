@@ -340,20 +340,6 @@ class DB2Compiler(compiler.SQLCompiler):
     #   else:
     #        return compiler.SQLCompiler.visit_function(self, func, **kwargs)
 
-
-    def visit_cast(self, cast, **kw):
-        type_ = cast.typeclause.type
-
-        # TODO: verify that CAST shouldn't be called with
-        # other types, I was able to CAST against VARCHAR
-        # for example
-        if isinstance(type_, (
-                    sa_types.DateTime, sa_types.Date, sa_types.Time,
-                    sa_types.DECIMAL)):
-            return super(DB2Compiler, self).visit_cast(cast, **kw)
-        else:
-            return self.process(cast.clause)
-
     def get_select_precolumns(self, select):
         if isinstance(select._distinct, basestring):
             return select._distinct.upper() + " "
