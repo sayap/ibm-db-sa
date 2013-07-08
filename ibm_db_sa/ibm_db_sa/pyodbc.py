@@ -30,8 +30,6 @@ class DB2ExecutionContext_pyodbc(_SelectLastRowIDMixin, DB2ExecutionContext):
 class DB2Dialect_pyodbc(PyODBCConnector, DB2Dialect):
 
     supports_unicode_statements = False
-    supports_native_decimal = True
-    supports_native_decimal = False
 
     execution_ctx_cls = DB2ExecutionContext_pyodbc
 
@@ -93,8 +91,6 @@ class AS400Dialect_pyodbc(PyODBCConnector, DB2Dialect):
     supports_unicode_statements = False
     supports_sane_rowcount = False
     supports_sane_multi_rowcount = False
-    supports_native_decimal = True
-    supports_native_decimal = False
 
     pyodbc_driver_name = "IBM DB2 ODBC DRIVER"
 

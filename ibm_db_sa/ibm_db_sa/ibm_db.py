@@ -41,7 +41,6 @@ class DB2Dialect_ibm_db(DB2Dialect):
     supports_unicode_statements = False
     supports_sane_rowcount = True
     supports_sane_multi_rowcount = False
-    supports_native_decimal = False
     execution_ctx_cls = DB2ExecutionContext_ibm_db
 
     colspecs = util.update_copy(
