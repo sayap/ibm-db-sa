@@ -358,6 +358,10 @@ class DB2Compiler(compiler.SQLCompiler):
              " ON ",
              self.process(join.onclause, **kwargs)))
 
+    def visit_savepoint(self, savepoint_stmt):
+        return ("SAVEPOINT %s ON ROLLBACK RETAIN CURSORS"
+            % self.preparer.format_savepoint(savepoint_stmt))
+
 
 class DB2DDLCompiler(compiler.DDLCompiler):
 
