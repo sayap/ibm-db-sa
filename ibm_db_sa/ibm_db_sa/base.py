@@ -484,7 +484,6 @@ class DB2Dialect(default.DefaultDialect):
     default_paramstyle = 'named'
     colspecs = colspecs
     ischema_names = ischema_names
-    supports_char_length = False
     supports_unicode_statements = False
     supports_unicode_binds = False
     returns_unicode_strings = False
