@@ -310,7 +310,7 @@ class DB2Compiler(compiler.SQLCompiler):
         return '0'
 
     def limit_clause(self, select):
-        if select._offset is None and select._limit is not None:
+        if not select._offset and select._limit is not None:
             return " FETCH FIRST %s ROWS ONLY" % select._limit
         else:
             return ""
