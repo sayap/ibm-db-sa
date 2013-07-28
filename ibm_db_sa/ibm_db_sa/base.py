@@ -452,6 +452,12 @@ class DB2IdentifierPreparer(compiler.IdentifierPreparer):
     reserved_words = RESERVED_WORDS
     illegal_initial_characters = set(xrange(0, 10)).union(["_", "$"])
 
+    def quote_identifier(self, value):
+        identifier = self._escape_identifier(value)
+        if self.dialect.uppercase_quoted_identifier:
+            identifier = identifier.upper()
+        return self.initial_quote + identifier + self.final_quote
+
 
 class DB2ExecutionContext(default.DefaultExecutionContext):
     def fire_sequence(self, seq, type_):
@@ -523,10 +529,14 @@ class DB2Dialect(default.DefaultDialect):
 
     _reflector_cls = ibm_reflection.DB2Reflector
 
-    def __init__(self, **kw):
+    def __init__(self, uppercase_quoted_identifier=False, **kw):
         super(DB2Dialect, self).__init__(**kw)
 
         self._reflector = self._reflector_cls(self)
+
+        # Set to True to use uppercase for quoted identifier, which seems to
+        # be the norm among mainframe DBAs.
+        self.uppercase_quoted_identifier = uppercase_quoted_identifier
 
     def normalize_name(self, name):
         return self._reflector.normalize_name(name)

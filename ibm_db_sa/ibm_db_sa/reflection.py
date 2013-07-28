@@ -46,8 +46,10 @@ class BaseReflector(object):
             return None
         if isinstance(name, str):
             name = name.decode(self.dialect.encoding)
-        if name.upper() == name and \
-               not self.identifier_preparer._requires_quotes(name.lower()):
+        if name.upper() == name and (
+            self.dialect.uppercase_quoted_identifier
+            or not self.identifier_preparer._requires_quotes(name.lower())
+        ):
             return name.lower()
         else:
             return name
@@ -55,8 +57,10 @@ class BaseReflector(object):
     def denormalize_name(self, name):
         if name is None:
             return None
-        elif name.lower() == name and \
-                not self.identifier_preparer._requires_quotes(name.lower()):
+        if name.lower() == name and (
+            self.dialect.uppercase_quoted_identifier
+            or not self.identifier_preparer._requires_quotes(name.lower())
+        ):
             name = name.upper()
         if not self.dialect.supports_unicode_binds:
             name = name.encode(self.dialect.encoding)
