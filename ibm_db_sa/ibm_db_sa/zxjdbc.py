@@ -18,9 +18,6 @@
 # | Version: 0.3.x                                                           |
 # +--------------------------------------------------------------------------+
 
-raise NotImplementedError(
-        "The zxjdbc dialect is not implemented at this time.")
-
 
 # NOTE: it appears that to use zxjdbc, the "RETURNING" syntax
 # must be installed in DB2, which appears to be optional.  It would
@@ -30,10 +27,10 @@ raise NotImplementedError(
 from decimal import Decimal as _python_Decimal
 from sqlalchemy import sql, util
 from sqlalchemy import types as sa_types
-from sqlalchemy.engine.base import FullyBufferedResultProxy, ResultProxy
+from sqlalchemy.engine.result import FullyBufferedResultProxy, ResultProxy
 from sqlalchemy.connectors.zxJDBC import ZxJDBCConnector
 from .base import DB2Dialect, DB2ExecutionContext, DB2Compiler, \
-    AS400Dialect, ZOSDialect
+    AS400Dialect, ZOSDialect, _SelectLastRowIDMixin
 
 
 class ReturningResultProxy(FullyBufferedResultProxy):
@@ -81,9 +78,11 @@ class ReturningParam(object):
                 kls.__module__, kls.__name__, id(self),
                                                    self.type)
 
-class DB2ExecutionContext_zxjdbc(DB2ExecutionContext):
+class DB2ExecutionContext_zxjdbc(_SelectLastRowIDMixin, DB2ExecutionContext):
 
     def pre_exec(self):
+        _SelectLastRowIDMixin.pre_exec(self)
+
         if hasattr(self.compiled, 'returning_parameters'):
             self.statement = self.cursor.prepare(self.statement)
 
